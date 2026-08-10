@@ -1,0 +1,7 @@
+# Dependencias para dashboard.py — instalar en el hosting donde
+# despliegues el dashboard (Streamlit Community Cloud, Railway, Render...).
+# Es un proyecto aparte del bot, así que necesita su propio requirements.
+streamlit>=1.32
+supabase>=2.4.0
+pandas>=2.0
+altair>=5.0
