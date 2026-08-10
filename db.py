@@ -340,6 +340,20 @@ def agregar_cita(usuario_id: str, texto: str) -> dict:
     return sb.table("citas").insert({"usuario_id": usuario_id, "texto": texto}).execute().data[0]
 
 
+def listar_citas(usuario_id: str) -> list[dict]:
+    """Todas las frases guardadas con /cita, la más reciente primero.
+    La usa el dashboard para el carrusel de frases."""
+    sb = get_client()
+    return (
+        sb.table("citas")
+        .select("*")
+        .eq("usuario_id", usuario_id)
+        .order("creado_en", desc=True)
+        .execute()
+        .data
+    )
+
+
 # ------------------------------------------------------------------
 # Metas del año
 # ------------------------------------------------------------------
