@@ -206,15 +206,17 @@ st.markdown(CUSTOM_CSS, unsafe_allow_html=True)
 
 
 def pantalla_vacia(titulo, mensaje):
-    st.markdown(
-        f"""
-        <div class="hero" style="text-align:center;">
-            <h1>✨ {titulo}</h1>
-            <p style="color:rgba(244,244,248,0.65); margin-top:0.6rem;">{mensaje}</p>
-        </div>
-        """,
-        unsafe_allow_html=True,
+    # Todo en una sola línea a propósito: si el HTML va indentado en
+    # varias líneas, el parser de Markdown de Streamlit a veces se
+    # confunde con las etiquetas anidadas y deja texto suelto tipo
+    # "</div>" visible en pantalla. En una sola línea no pasa.
+    html = (
+        '<div class="hero" style="text-align:center;">'
+        f'<h1>✨ {titulo}</h1>'
+        f'<p style="color:rgba(244,244,248,0.65); margin-top:0.6rem;">{mensaje}</p>'
+        '</div>'
     )
+    st.markdown(html, unsafe_allow_html=True)
     st.stop()
 
 
@@ -260,23 +262,19 @@ if not habitos:
 
 desde_30 = hoy - timedelta(days=29)
 registros_30 = db.obtener_registros_entre(usuario["id"], desde_30, hoy)
-registros_anio = db.obtener_registros_entre(usuario["id"], date(hoy.year, 1, 1), hoy)
 citas = db.listar_citas(usuario["id"])
 
 df_30 = pd.DataFrame(registros_30)
-df_anio = pd.DataFrame(registros_anio)
 
 # ---------- Hero ----------
-st.markdown(
-    f"""
-    <div class="hero">
-        <div class="fecha">{fecha_es}</div>
-        <h1>Hola, {nombre} 👋</h1>
-        <span class="badge">✨ PLAN PRO</span>
-    </div>
-    """,
-    unsafe_allow_html=True,
+hero_html = (
+    '<div class="hero">'
+    f'<div class="fecha">{fecha_es}</div>'
+    f'<h1>Hola, {nombre} 👋</h1>'
+    '<span class="badge">✨ PLAN PRO</span>'
+    '</div>'
 )
+st.markdown(hero_html, unsafe_allow_html=True)
 
 # ---------- Carrusel de frases guardadas con /cita ----------
 if citas:
@@ -318,28 +316,20 @@ if not df_30.empty:
 else:
     pct_30 = 0
 
-st.markdown(
-    f"""
-    <div class="stat-grid">
-        <div class="stat-card">
-            <div class="emoji">🔥</div>
-            <div class="value">{racha_maxima}</div>
-            <div class="label">Racha más larga</div>
-        </div>
-        <div class="stat-card">
-            <div class="emoji">⚡</div>
-            <div class="value">{pct_30}%</div>
-            <div class="label">Cumplimiento 30 días</div>
-        </div>
-        <div class="stat-card">
-            <div class="emoji">🎯</div>
-            <div class="value">{len(habitos)}</div>
-            <div class="label">Hábitos activos</div>
-        </div>
-    </div>
-    """,
-    unsafe_allow_html=True,
+stats_html = (
+    '<div class="stat-grid">'
+    '<div class="stat-card"><div class="emoji">🔥</div>'
+    f'<div class="value">{racha_maxima}</div>'
+    '<div class="label">Racha más larga</div></div>'
+    '<div class="stat-card"><div class="emoji">⚡</div>'
+    f'<div class="value">{pct_30}%</div>'
+    '<div class="label">Cumplimiento 30 días</div></div>'
+    '<div class="stat-card"><div class="emoji">🎯</div>'
+    f'<div class="value">{len(habitos)}</div>'
+    '<div class="label">Hábitos activos</div></div>'
+    '</div>'
 )
+st.markdown(stats_html, unsafe_allow_html=True)
 
 # ---------- Cumplimiento por hábito (30 días) ----------
 st.markdown('<div class="section-title">📊 Cumplimiento por hábito — últimos 30 días</div>', unsafe_allow_html=True)
@@ -383,51 +373,74 @@ chart_barras = (
 )
 st.altair_chart(chart_barras, use_container_width=True)
 
-# ---------- Calendario del año (mapa de calor tipo GitHub) ----------
-st.markdown(f'<div class="section-title">📅 Constancia en {hoy.year}</div>', unsafe_allow_html=True)
-if df_anio.empty:
+# ---------- Constancia: una fila por hábito, una columna por día
+# desde tu primer registro (no un año fijo) ----------
+st.markdown('<div class="section-title">📅 Constancia desde que empezaste</div>', unsafe_allow_html=True)
+
+registros_todos = db.obtener_registros(usuario["id"], dias=None)
+df_todos = pd.DataFrame(registros_todos)
+
+if df_todos.empty:
     st.markdown(
-        '<p style="color:rgba(244,244,248,0.5);">Todavía no hay registros este año.</p>',
+        '<p style="color:rgba(244,244,248,0.5);">Todavía no hay registros.</p>',
         unsafe_allow_html=True,
     )
 else:
-    cumplidos_por_dia = (
-        df_anio[df_anio["completado"] == True]
-        .groupby("fecha")
-        .size()
-        .reset_index(name="cumplidos")
-    )
-    cumplidos_por_dia["fecha"] = pd.to_datetime(cumplidos_por_dia["fecha"])
-    cumplidos_por_dia["semana"] = cumplidos_por_dia["fecha"].dt.isocalendar().week
-    cumplidos_por_dia["dia_semana"] = cumplidos_por_dia["fecha"].dt.dayofweek
+    df_todos["fecha"] = pd.to_datetime(df_todos["fecha"])
+    fecha_inicio = df_todos["fecha"].min()
+    rango_fechas = pd.date_range(fecha_inicio, pd.Timestamp(hoy), freq="D")
 
-    heatmap = (
-        alt.Chart(cumplidos_por_dia)
-        .mark_rect(cornerRadius=4, stroke="#0a0a17", strokeWidth=3)
+    mapa_nombre = {h["id"]: h["nombre"] for h in habitos}
+    df_todos["Hábito"] = df_todos["habito_id"].map(mapa_nombre)
+    df_todos = df_todos[df_todos["Hábito"].notna()]  # solo hábitos que siguen activos
+
+    nombres_habitos = [h["nombre"] for h in habitos]
+    malla = pd.MultiIndex.from_product(
+        [nombres_habitos, rango_fechas], names=["Hábito", "fecha"]
+    ).to_frame(index=False)
+
+    cumplidos = df_todos[df_todos["completado"] == True][["Hábito", "fecha"]].copy()
+    cumplidos["hecho"] = "Cumplido"
+
+    malla = malla.merge(cumplidos, on=["Hábito", "fecha"], how="left")
+    malla["hecho"] = malla["hecho"].fillna("Sin marcar")
+    # Campo con la fecha en ISO (único y ordena bien aunque pasen años)
+    # para posicionar las columnas; la etiqueta que se ve sí es dd/mm.
+    malla["fecha_iso"] = malla["fecha"].dt.strftime("%Y-%m-%d")
+
+    grid_chart = (
+        alt.Chart(malla)
+        .mark_rect(cornerRadius=3, stroke="#0a0a17", strokeWidth=2)
         .encode(
-            x=alt.X("semana:O", title=None, axis=alt.Axis(labels=False, ticks=False, domain=False)),
-            y=alt.Y(
-                "dia_semana:O",
+            x=alt.X(
+                "fecha_iso:O",
                 title=None,
                 axis=alt.Axis(
-                    labels=True, ticks=False, domain=False, labelColor="#9ca3af", labelFontSize=11,
-                    labelExpr="['Lun','Mar','Mié','Jue','Vie','Sáb','Dom'][datum.value]",
+                    labelAngle=-45, labelOverlap=True, grid=False, domain=False,
+                    labelColor="#9ca3af", labelFontSize=10,
+                    labelExpr="substring(datum.value,8,10) + '/' + substring(datum.value,5,7)",
                 ),
             ),
+            y=alt.Y(
+                "Hábito:N", title=None, sort=nombres_habitos,
+                axis=alt.Axis(grid=False, domain=False, labelColor="#f4f4f8",
+                               labelFontSize=12, labelFontWeight=600),
+            ),
             color=alt.Color(
-                "cumplidos:Q",
-                scale=alt.Scale(range=["#151530", "#34d399"]),
+                "hecho:N",
+                scale=alt.Scale(domain=["Cumplido", "Sin marcar"], range=["#34d399", "#151530"]),
                 legend=None,
             ),
             tooltip=[
-                alt.Tooltip("fecha:T", title="Día"),
-                alt.Tooltip("cumplidos:Q", title="Hábitos cumplidos"),
+                alt.Tooltip("Hábito:N"),
+                alt.Tooltip("fecha:T", title="Día", format="%d/%m/%Y"),
+                alt.Tooltip("hecho:N", title="Estado"),
             ],
         )
-        .properties(height=170, background="transparent")
+        .properties(height=max(140, 42 * len(habitos)), background="transparent")
         .configure_view(strokeWidth=0)
     )
-    st.altair_chart(heatmap, use_container_width=True)
+    st.altair_chart(grid_chart, use_container_width=True)
 
 # ---------- Metas del año ----------
 metas = db.listar_metas(usuario["id"])
@@ -445,21 +458,18 @@ if metas:
         vinculo_html = (
             '<span class="linked">🔗 progreso automático</span>' if m.get("habito_id") else ""
         )
-        st.markdown(
-            f"""
-            <div class="goal-card">
-                <div class="goal-ring" style="background: conic-gradient({color} {pct * 3.6}deg, rgba(255,255,255,0.08) 0deg);">
-                    <span>{pct}%</span>
-                </div>
-                <div class="goal-info">
-                    <div class="name">{m['nombre']}</div>
-                    <div class="sub">{progreso:g} / {objetivo:g}{unidad}</div>
-                    {vinculo_html}
-                </div>
-            </div>
-            """,
-            unsafe_allow_html=True,
+        goal_html = (
+            '<div class="goal-card">'
+            f'<div class="goal-ring" style="background: conic-gradient({color} {pct * 3.6}deg, rgba(255,255,255,0.08) 0deg);">'
+            f'<span>{pct}%</span></div>'
+            '<div class="goal-info">'
+            f'<div class="name">{m["nombre"]}</div>'
+            f'<div class="sub">{progreso:g} / {objetivo:g}{unidad}</div>'
+            f'{vinculo_html}'
+            '</div>'
+            '</div>'
         )
+        st.markdown(goal_html, unsafe_allow_html=True)
 
 st.markdown(
     '<div class="caption-suave">Datos actualizados en tiempo real desde el bot de Telegram ✨</div>',
