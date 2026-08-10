@@ -428,7 +428,7 @@ else:
             ),
             color=alt.Color(
                 "hecho:N",
-                scale=alt.Scale(domain=["Cumplido", "Sin marcar"], range=["#34d399", "#151530"]),
+                scale=alt.Scale(domain=["Cumplido", "Sin marcar"], range=["#34d399", "#f87171"]),
                 legend=None,
             ),
             tooltip=[
