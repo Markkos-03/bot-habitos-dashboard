@@ -471,6 +471,136 @@ if metas:
         )
         st.markdown(goal_html, unsafe_allow_html=True)
 
+# ---------- Entreno (Hevy) — volumen y reparto por grupo muscular,
+# últimos 30 días ----------
+entrenos_raw = db.listar_entrenos(usuario["id"], limite=200)
+df_entrenos = pd.DataFrame(entrenos_raw)
+if not df_entrenos.empty:
+    df_entrenos["fecha"] = pd.to_datetime(df_entrenos["fecha"])
+    df_entrenos_30 = df_entrenos[df_entrenos["fecha"] >= pd.Timestamp(desde_30)]
+else:
+    df_entrenos_30 = df_entrenos
+
+if not df_entrenos_30.empty:
+    st.markdown('<div class="section-title">🏋️ Entreno — últimos 30 días</div>', unsafe_allow_html=True)
+
+    series_30 = db.obtener_series_entre(usuario["id"], desde_30, hoy)
+    df_series = pd.DataFrame(series_30)
+    if not df_series.empty:
+        df_series_validas = df_series[df_series["es_calentamiento"] != True]
+    else:
+        df_series_validas = df_series
+
+    volumen_30 = df_series_validas["volumen_serie"].sum() if not df_series_validas.empty else 0
+    volumen_fmt = f"{volumen_30:,.0f}".replace(",", ".")
+
+    entreno_stats_html = (
+        '<div class="stat-grid">'
+        '<div class="stat-card"><div class="emoji">📦</div>'
+        f'<div class="value">{volumen_fmt}</div>'
+        '<div class="label">Kg movidos</div></div>'
+        '<div class="stat-card"><div class="emoji">🏋️</div>'
+        f'<div class="value">{len(df_entrenos_30)}</div>'
+        '<div class="label">Entrenos</div></div>'
+        '<div class="stat-card"><div class="emoji">🔢</div>'
+        f'<div class="value">{len(df_series_validas)}</div>'
+        '<div class="label">Series totales</div></div>'
+        '</div>'
+    )
+    st.markdown(entreno_stats_html, unsafe_allow_html=True)
+
+    if not df_series_validas.empty:
+        # Colores validados para fondo oscuro (paleta categórica de 8
+        # tonos, orden fijo — nunca se reasignan aunque cambien los
+        # grupos presentes, para que un grupo siempre tenga el mismo
+        # color de un vistazo a otro).
+        GRUPO_COLORES = {
+            "Pecho": "#3987e5",
+            "Espalda": "#d95926",
+            "Piernas": "#199e70",
+            "Hombros": "#c98500",
+            "Biceps": "#d55181",
+            "Triceps": "#008300",
+            "Core": "#9085e9",
+            "Otros": "#e66767",
+        }
+        orden_grupos = list(GRUPO_COLORES.keys())
+
+        por_grupo = (
+            df_series_validas.assign(grupo_muscular=df_series_validas["grupo_muscular"].fillna("Otros"))
+            .groupby("grupo_muscular")["volumen_serie"]
+            .sum()
+            .reset_index()
+            .rename(columns={"grupo_muscular": "Grupo", "volumen_serie": "Volumen"})
+        )
+        por_grupo["pct"] = round(100 * por_grupo["Volumen"] / por_grupo["Volumen"].sum())
+        por_grupo["orden"] = por_grupo["Grupo"].apply(
+            lambda g: orden_grupos.index(g) if g in orden_grupos else len(orden_grupos)
+        )
+        # Solo entran en la leyenda los grupos que de verdad aparecen en
+        # este periodo (si no, saldrían los 8 siempre, con 7 sin hueco
+        # en el donut). El color de cada grupo es siempre el mismo,
+        # aparezca o no, para que de un vistazo a otro no cambie.
+        grupos_presentes = [g for g in orden_grupos if g in set(por_grupo["Grupo"])]
+
+        donut = (
+            alt.Chart(por_grupo)
+            .mark_arc(innerRadius=64, outerRadius=108, cornerRadius=4, stroke="#0a0a17", strokeWidth=2)
+            .encode(
+                theta=alt.Theta("Volumen:Q", stack=True),
+                order=alt.Order("orden:Q"),
+                color=alt.Color(
+                    "Grupo:N",
+                    scale=alt.Scale(domain=grupos_presentes, range=[GRUPO_COLORES[g] for g in grupos_presentes]),
+                    legend=alt.Legend(
+                        title=None, labelColor="#f4f4f8", labelFontSize=12,
+                        symbolType="circle", orient="right",
+                    ),
+                ),
+                tooltip=[
+                    alt.Tooltip("Grupo:N"),
+                    alt.Tooltip("Volumen:Q", format=",.0f", title="Volumen (kg)"),
+                    alt.Tooltip("pct:Q", title="% del total"),
+                ],
+            )
+            .properties(height=270, background="transparent")
+            .configure_view(strokeWidth=0)
+        )
+        st.altair_chart(donut, use_container_width=True)
+
+        top_ejercicios = (
+            df_series_validas.groupby("ejercicio")["volumen_serie"]
+            .sum()
+            .reset_index()
+            .rename(columns={"ejercicio": "Ejercicio", "volumen_serie": "Volumen"})
+            .sort_values("Volumen", ascending=False)
+            .head(5)
+        )
+        if not top_ejercicios.empty:
+            st.markdown(
+                '<div style="margin: 1.3rem 0 0.7rem 0; font-family:\'Poppins\',sans-serif; '
+                'font-weight:700; font-size:0.95rem;">💪 Top ejercicios por volumen</div>',
+                unsafe_allow_html=True,
+            )
+            chart_top = (
+                alt.Chart(top_ejercicios)
+                .mark_bar(cornerRadiusEnd=8, size=16, color="#22d3ee")
+                .encode(
+                    x=alt.X("Volumen:Q", axis=alt.Axis(grid=False, title=None, labelColor="#9ca3af")),
+                    y=alt.Y("Ejercicio:N", sort="-x",
+                            axis=alt.Axis(grid=False, title=None, labelColor="#f4f4f8",
+                                           labelFontSize=12, labelFontWeight=600)),
+                    tooltip=[
+                        alt.Tooltip("Ejercicio:N"),
+                        alt.Tooltip("Volumen:Q", format=",.0f", title="Volumen (kg)"),
+                    ],
+                )
+                .properties(height=max(120, 34 * len(top_ejercicios)), background="transparent")
+                .configure_view(strokeWidth=0)
+                .configure_axis(domain=False)
+            )
+            st.altair_chart(chart_top, use_container_width=True)
+
 st.markdown(
     '<div class="caption-suave">Datos actualizados en tiempo real desde el bot de Telegram ✨</div>',
     unsafe_allow_html=True,
