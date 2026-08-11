@@ -111,6 +111,14 @@ def set_plan(usuario_id: str, plan: str, stripe_customer_id: str | None = None,
     sb.table("usuarios").update(payload).eq("id", usuario_id).execute()
 
 
+def marcar_trial_usado(usuario_id: str) -> None:
+    """Se llama al completarse cualquier checkout (haya tenido trial o
+    no) para que esa persona no pueda volver a recibir los días gratis
+    si cancela y se vuelve a suscribir."""
+    sb = get_client()
+    sb.table("usuarios").update({"trial_usado": True}).eq("id", usuario_id).execute()
+
+
 def set_modo_examenes(usuario_id: str, activo: bool) -> None:
     sb = get_client()
     sb.table("usuarios").update({"modo_examenes": activo}).eq("id", usuario_id).execute()
@@ -317,9 +325,69 @@ def guardar_entreno(usuario_id: str, hevy_id: str, fecha: date, hora: str, titul
         .data[0]
     )
     if series:
-        filas = [{**s, "entreno_id": entreno["id"], "usuario_id": usuario_id} for s in series]
+        filas = [
+            {**s, "entreno_id": entreno["id"], "usuario_id": usuario_id, "orden": i}
+            for i, s in enumerate(series)
+        ]
         sb.table("entrenos_series").insert(filas).execute()
     return entreno
+
+
+def listar_entrenos(usuario_id: str, limite: int = 60) -> list[dict]:
+    """Entrenos guardados de un usuario, del más reciente al más
+    antiguo. Se usa para /entrenos y para la sección de entreno del
+    dashboard."""
+    sb = get_client()
+    return (
+        sb.table("entrenos")
+        .select("*")
+        .eq("usuario_id", usuario_id)
+        .order("fecha", desc=True)
+        .order("hora", desc=True)
+        .limit(limite)
+        .execute()
+        .data
+    )
+
+
+def obtener_series_entreno(entreno_id: str) -> list[dict]:
+    """Las series de un entreno concreto, en el mismo orden en que se
+    pegaron (columna 'orden')."""
+    sb = get_client()
+    return (
+        sb.table("entrenos_series")
+        .select("*")
+        .eq("entreno_id", entreno_id)
+        .order("orden")
+        .execute()
+        .data
+    )
+
+
+def obtener_series_entre(usuario_id: str, desde: date, hasta: date) -> list[dict]:
+    """Todas las series de todos los entrenos de un usuario en un rango
+    de fechas (para el resumen de volumen y grupos musculares del
+    dashboard). Se apoya en el índice de entrenos por fecha."""
+    sb = get_client()
+    entrenos = (
+        sb.table("entrenos")
+        .select("id")
+        .eq("usuario_id", usuario_id)
+        .gte("fecha", desde.isoformat())
+        .lte("fecha", hasta.isoformat())
+        .execute()
+        .data
+    )
+    ids_entrenos = [e["id"] for e in entrenos]
+    if not ids_entrenos:
+        return []
+    return (
+        sb.table("entrenos_series")
+        .select("*")
+        .in_("entreno_id", ids_entrenos)
+        .execute()
+        .data
+    )
 
 
 def registrar_fallback_hevy(usuario_id: str | None, texto_crudo: str, motivo: str) -> None:
