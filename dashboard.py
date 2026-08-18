@@ -44,7 +44,99 @@ except Exception:
 
 import db
 
-st.set_page_config(page_title="Tu progreso", page_icon="✨", layout="centered")
+# ------------------------------------------------------------------
+# Idioma — el bot le añade ?lang=es|en al enlace del dashboard según
+# lo que la persona eligió en Telegram con /idioma. Si llega sin ese
+# parámetro (enlaces viejos, gente que entra directo a la URL), se
+# asume español.
+# ------------------------------------------------------------------
+_lang_param = st.query_params.get("lang", "es")
+IDIOMA = _lang_param if _lang_param in ("es", "en") else "es"
+
+TEXTOS = {
+    "es": {
+        "titulo_pagina": "Tu progreso",
+        "titulo_vacio_sin_token": "Tu dashboard",
+        "msg_vacio_sin_token": "Este enlace es privado y personal. Pídeselo al bot de Telegram escribiendo <b>/dashboard</b>.",
+        "titulo_enlace_invalido": "Enlace no válido",
+        "msg_enlace_invalido": "Pide uno nuevo escribiéndole al bot <b>/dashboard</b>.",
+        "hola_nombre": "Hola, {nombre}",
+        "msg_sin_habitos": "Todavía no tienes hábitos activos. Créalos con <b>/nuevohabito</b> desde el bot.",
+        "badge_pro": "✨ PLAN PRO",
+        "tus_frases": "💬 Tus frases",
+        "racha_mas_larga": "Racha más larga",
+        "cumplimiento_30": "Cumplimiento 30 días",
+        "habitos_activos": "Hábitos activos",
+        "seccion_cumplimiento": "📊 Cumplimiento por hábito — últimos 30 días",
+        "tooltip_habito": "Hábito",
+        "tooltip_pct_cumplido": "% cumplido",
+        "tooltip_racha_dias": "Racha (días)",
+        "seccion_constancia": "📅 Constancia desde que empezaste",
+        "sin_registros": "Todavía no hay registros.",
+        "tooltip_dia": "Día",
+        "tooltip_estado": "Estado",
+        "estado_cumplido": "Cumplido",
+        "estado_sin_marcar": "Sin marcar",
+        "seccion_metas": "🏆 Metas del año",
+        "progreso_automatico": "🔗 progreso automático",
+        "seccion_entreno": "🏋️ Entreno — últimos 30 días",
+        "kg_movidos": "Kg movidos",
+        "entrenos": "Entrenos",
+        "series_totales": "Series totales",
+        "tooltip_grupo": "Grupo",
+        "tooltip_volumen_kg": "Volumen (kg)",
+        "tooltip_pct_total": "% del total",
+        "top_ejercicios": "💪 Top ejercicios por volumen",
+        "tooltip_ejercicio": "Ejercicio",
+        "pie_tiempo_real": "Datos actualizados en tiempo real desde el bot de Telegram ✨",
+    },
+    "en": {
+        "titulo_pagina": "Your progress",
+        "titulo_vacio_sin_token": "Your dashboard",
+        "msg_vacio_sin_token": "This link is private and personal. Ask the Telegram bot for it by typing <b>/dashboard</b>.",
+        "titulo_enlace_invalido": "Invalid link",
+        "msg_enlace_invalido": "Ask the bot for a new one by typing <b>/dashboard</b>.",
+        "hola_nombre": "Hi, {nombre}",
+        "msg_sin_habitos": "You don't have any active habits yet. Create them with <b>/newhabit</b> from the bot.",
+        "badge_pro": "✨ PRO PLAN",
+        "tus_frases": "💬 Your quotes",
+        "racha_mas_larga": "Longest streak",
+        "cumplimiento_30": "30-day completion",
+        "habitos_activos": "Active habits",
+        "seccion_cumplimiento": "📊 Completion by habit — last 30 days",
+        "tooltip_habito": "Habit",
+        "tooltip_pct_cumplido": "% completed",
+        "tooltip_racha_dias": "Streak (days)",
+        "seccion_constancia": "📅 Consistency since you started",
+        "sin_registros": "No records yet.",
+        "tooltip_dia": "Day",
+        "tooltip_estado": "Status",
+        "estado_cumplido": "Done",
+        "estado_sin_marcar": "Not marked",
+        "seccion_metas": "🏆 Yearly goals",
+        "progreso_automatico": "🔗 automatic progress",
+        "seccion_entreno": "🏋️ Workouts — last 30 days",
+        "kg_movidos": "Kg moved",
+        "entrenos": "Workouts",
+        "series_totales": "Total sets",
+        "tooltip_grupo": "Group",
+        "tooltip_volumen_kg": "Volume (kg)",
+        "tooltip_pct_total": "% of total",
+        "top_ejercicios": "💪 Top exercises by volume",
+        "tooltip_ejercicio": "Exercise",
+        "pie_tiempo_real": "Data updated in real time from the Telegram bot ✨",
+    },
+}
+
+
+def t(clave, **kwargs):
+    plantilla = TEXTOS.get(IDIOMA, TEXTOS["es"]).get(clave)
+    if plantilla is None:
+        plantilla = TEXTOS["es"].get(clave, clave)
+    return plantilla.format(**kwargs) if kwargs else plantilla
+
+
+st.set_page_config(page_title=t("titulo_pagina"), page_icon="✨", layout="centered")
 
 # ------------------------------------------------------------------
 # Estilo — paleta pensada para transmitir logro y calma a la vez:
@@ -223,16 +315,10 @@ def pantalla_vacia(titulo, mensaje):
 def cargar_usuario():
     token = st.query_params.get("token")
     if not token:
-        pantalla_vacia(
-            "Tu dashboard",
-            "Este enlace es privado y personal. Pídeselo al bot de Telegram escribiendo <b>/dashboard</b>.",
-        )
+        pantalla_vacia(t("titulo_vacio_sin_token"), t("msg_vacio_sin_token"))
     usuario = db.get_usuario_por_dashboard_token(token)
     if not usuario:
-        pantalla_vacia(
-            "Enlace no válido",
-            "Pide uno nuevo escribiéndole al bot <b>/dashboard</b>.",
-        )
+        pantalla_vacia(t("titulo_enlace_invalido"), t("msg_enlace_invalido"))
     return usuario
 
 
@@ -248,17 +334,14 @@ def color_semaforo(pct):
 
 usuario = cargar_usuario()
 
-nombre = usuario.get("nombre") or usuario.get("telegram_username") or "ahí"
+nombre = usuario.get("nombre") or usuario.get("telegram_username") or ("there" if IDIOMA == "en" else "ahí")
 hoy = date.today()
-fecha_es = hoy.strftime("%d/%m/%Y")
+fecha_fmt = hoy.strftime("%m/%d/%Y") if IDIOMA == "en" else hoy.strftime("%d/%m/%Y")
 
 # ---------- Datos base ----------
 habitos = db.listar_habitos(usuario["id"])
 if not habitos:
-    pantalla_vacia(
-        f"Hola, {nombre}",
-        "Todavía no tienes hábitos activos. Créalos con <b>/nuevohabito</b> desde el bot.",
-    )
+    pantalla_vacia(t("hola_nombre", nombre=nombre), t("msg_sin_habitos"))
 
 desde_30 = hoy - timedelta(days=29)
 registros_30 = db.obtener_registros_entre(usuario["id"], desde_30, hoy)
@@ -269,9 +352,9 @@ df_30 = pd.DataFrame(registros_30)
 # ---------- Hero ----------
 hero_html = (
     '<div class="hero">'
-    f'<div class="fecha">{fecha_es}</div>'
-    f'<h1>Hola, {nombre} 👋</h1>'
-    '<span class="badge">✨ PLAN PRO</span>'
+    f'<div class="fecha">{fecha_fmt}</div>'
+    f'<h1>{t("hola_nombre", nombre=nombre)} 👋</h1>'
+    f'<span class="badge">{t("badge_pro")}</span>'
     '</div>'
 )
 st.markdown(hero_html, unsafe_allow_html=True)
@@ -279,7 +362,7 @@ st.markdown(hero_html, unsafe_allow_html=True)
 # ---------- Carrusel de frases guardadas con /cita ----------
 if citas:
     frases_js = json.dumps([c["texto"] for c in citas])
-    st.markdown('<div class="quote-title">💬 Tus frases</div>', unsafe_allow_html=True)
+    st.markdown(f'<div class="quote-title">{t("tus_frases")}</div>', unsafe_allow_html=True)
     carousel_html = f"""
     <div style="font-family:'Inter',-apple-system,sans-serif; background:linear-gradient(135deg, rgba(124,58,237,0.30), rgba(34,211,238,0.12));
                 border:1px solid rgba(255,255,255,0.08); border-radius:22px; padding:1.5rem 1.8rem;
@@ -320,19 +403,19 @@ stats_html = (
     '<div class="stat-grid">'
     '<div class="stat-card"><div class="emoji">🔥</div>'
     f'<div class="value">{racha_maxima}</div>'
-    '<div class="label">Racha más larga</div></div>'
+    f'<div class="label">{t("racha_mas_larga")}</div></div>'
     '<div class="stat-card"><div class="emoji">⚡</div>'
     f'<div class="value">{pct_30}%</div>'
-    '<div class="label">Cumplimiento 30 días</div></div>'
+    f'<div class="label">{t("cumplimiento_30")}</div></div>'
     '<div class="stat-card"><div class="emoji">🎯</div>'
     f'<div class="value">{len(habitos)}</div>'
-    '<div class="label">Hábitos activos</div></div>'
+    f'<div class="label">{t("habitos_activos")}</div></div>'
     '</div>'
 )
 st.markdown(stats_html, unsafe_allow_html=True)
 
 # ---------- Cumplimiento por hábito (30 días) ----------
-st.markdown('<div class="section-title">📊 Cumplimiento por hábito — últimos 30 días</div>', unsafe_allow_html=True)
+st.markdown(f'<div class="section-title">{t("seccion_cumplimiento")}</div>', unsafe_allow_html=True)
 
 filas = []
 for h in habitos:
@@ -362,9 +445,9 @@ chart_barras = (
                 axis=alt.Axis(grid=False, title=None, labelColor="#f4f4f8", labelFontSize=13, labelFontWeight=600)),
         color=alt.Color("color:N", scale=None, legend=None),
         tooltip=[
-            alt.Tooltip("Hábito:N"),
-            alt.Tooltip("% cumplido:Q"),
-            alt.Tooltip("Racha actual:Q", title="Racha (días)"),
+            alt.Tooltip("Hábito:N", title=t("tooltip_habito")),
+            alt.Tooltip("% cumplido:Q", title=t("tooltip_pct_cumplido")),
+            alt.Tooltip("Racha actual:Q", title=t("tooltip_racha_dias")),
         ],
     )
     .properties(height=max(160, 46 * len(habitos)), background="transparent")
@@ -375,14 +458,14 @@ st.altair_chart(chart_barras, use_container_width=True)
 
 # ---------- Constancia: una fila por hábito, una columna por día
 # desde tu primer registro (no un año fijo) ----------
-st.markdown('<div class="section-title">📅 Constancia desde que empezaste</div>', unsafe_allow_html=True)
+st.markdown(f'<div class="section-title">{t("seccion_constancia")}</div>', unsafe_allow_html=True)
 
 registros_todos = db.obtener_registros(usuario["id"], dias=None)
 df_todos = pd.DataFrame(registros_todos)
 
 if df_todos.empty:
     st.markdown(
-        '<p style="color:rgba(244,244,248,0.5);">Todavía no hay registros.</p>',
+        f'<p style="color:rgba(244,244,248,0.5);">{t("sin_registros")}</p>',
         unsafe_allow_html=True,
     )
 else:
@@ -400,10 +483,10 @@ else:
     ).to_frame(index=False)
 
     cumplidos = df_todos[df_todos["completado"] == True][["Hábito", "fecha"]].copy()
-    cumplidos["hecho"] = "Cumplido"
+    cumplidos["hecho"] = t("estado_cumplido")
 
     malla = malla.merge(cumplidos, on=["Hábito", "fecha"], how="left")
-    malla["hecho"] = malla["hecho"].fillna("Sin marcar")
+    malla["hecho"] = malla["hecho"].fillna(t("estado_sin_marcar"))
     # Campo con la fecha en ISO (único y ordena bien aunque pasen años)
     # para posicionar las columnas; la etiqueta que se ve sí es dd/mm.
     malla["fecha_iso"] = malla["fecha"].dt.strftime("%Y-%m-%d")
@@ -428,13 +511,13 @@ else:
             ),
             color=alt.Color(
                 "hecho:N",
-                scale=alt.Scale(domain=["Cumplido", "Sin marcar"], range=["#34d399", "#f87171"]),
+                scale=alt.Scale(domain=[t("estado_cumplido"), t("estado_sin_marcar")], range=["#34d399", "#f87171"]),
                 legend=None,
             ),
             tooltip=[
-                alt.Tooltip("Hábito:N"),
-                alt.Tooltip("fecha:T", title="Día", format="%d/%m/%Y"),
-                alt.Tooltip("hecho:N", title="Estado"),
+                alt.Tooltip("Hábito:N", title=t("tooltip_habito")),
+                alt.Tooltip("fecha:T", title=t("tooltip_dia"), format=("%m/%d/%Y" if IDIOMA == "en" else "%d/%m/%Y")),
+                alt.Tooltip("hecho:N", title=t("tooltip_estado")),
             ],
         )
         .properties(height=max(140, 42 * len(habitos)), background="transparent")
@@ -445,7 +528,7 @@ else:
 # ---------- Metas del año ----------
 metas = db.listar_metas(usuario["id"])
 if metas:
-    st.markdown('<div class="section-title">🏆 Metas del año</div>', unsafe_allow_html=True)
+    st.markdown(f'<div class="section-title">{t("seccion_metas")}</div>', unsafe_allow_html=True)
     for m in metas:
         if m.get("habito_id"):
             progreso = db.contar_cumplidos_habito_anio(m["habito_id"], usuario["id"], hoy.year)
@@ -456,7 +539,7 @@ if metas:
         color = color_semaforo(pct)
         unidad = f" {m['unidad']}" if m.get("unidad") else ""
         vinculo_html = (
-            '<span class="linked">🔗 progreso automático</span>' if m.get("habito_id") else ""
+            f'<span class="linked">{t("progreso_automatico")}</span>' if m.get("habito_id") else ""
         )
         goal_html = (
             '<div class="goal-card">'
@@ -482,7 +565,7 @@ else:
     df_entrenos_30 = df_entrenos
 
 if not df_entrenos_30.empty:
-    st.markdown('<div class="section-title">🏋️ Entreno — últimos 30 días</div>', unsafe_allow_html=True)
+    st.markdown(f'<div class="section-title">{t("seccion_entreno")}</div>', unsafe_allow_html=True)
 
     series_30 = db.obtener_series_entre(usuario["id"], desde_30, hoy)
     df_series = pd.DataFrame(series_30)
@@ -492,19 +575,20 @@ if not df_entrenos_30.empty:
         df_series_validas = df_series
 
     volumen_30 = df_series_validas["volumen_serie"].sum() if not df_series_validas.empty else 0
-    volumen_fmt = f"{volumen_30:,.0f}".replace(",", ".")
+    # Separador de miles: punto en español (1.234), coma en inglés (1,234).
+    volumen_fmt = f"{volumen_30:,.0f}" if IDIOMA == "en" else f"{volumen_30:,.0f}".replace(",", ".")
 
     entreno_stats_html = (
         '<div class="stat-grid">'
         '<div class="stat-card"><div class="emoji">📦</div>'
         f'<div class="value">{volumen_fmt}</div>'
-        '<div class="label">Kg movidos</div></div>'
+        f'<div class="label">{t("kg_movidos")}</div></div>'
         '<div class="stat-card"><div class="emoji">🏋️</div>'
         f'<div class="value">{len(df_entrenos_30)}</div>'
-        '<div class="label">Entrenos</div></div>'
+        f'<div class="label">{t("entrenos")}</div></div>'
         '<div class="stat-card"><div class="emoji">🔢</div>'
         f'<div class="value">{len(df_series_validas)}</div>'
-        '<div class="label">Series totales</div></div>'
+        f'<div class="label">{t("series_totales")}</div></div>'
         '</div>'
     )
     st.markdown(entreno_stats_html, unsafe_allow_html=True)
@@ -558,9 +642,9 @@ if not df_entrenos_30.empty:
                     ),
                 ),
                 tooltip=[
-                    alt.Tooltip("Grupo:N"),
-                    alt.Tooltip("Volumen:Q", format=",.0f", title="Volumen (kg)"),
-                    alt.Tooltip("pct:Q", title="% del total"),
+                    alt.Tooltip("Grupo:N", title=t("tooltip_grupo")),
+                    alt.Tooltip("Volumen:Q", format=",.0f", title=t("tooltip_volumen_kg")),
+                    alt.Tooltip("pct:Q", title=t("tooltip_pct_total")),
                 ],
             )
             .properties(height=270, background="transparent")
@@ -579,7 +663,7 @@ if not df_entrenos_30.empty:
         if not top_ejercicios.empty:
             st.markdown(
                 '<div style="margin: 1.3rem 0 0.7rem 0; font-family:\'Poppins\',sans-serif; '
-                'font-weight:700; font-size:0.95rem;">💪 Top ejercicios por volumen</div>',
+                f'font-weight:700; font-size:0.95rem;">{t("top_ejercicios")}</div>',
                 unsafe_allow_html=True,
             )
             chart_top = (
@@ -591,8 +675,8 @@ if not df_entrenos_30.empty:
                             axis=alt.Axis(grid=False, title=None, labelColor="#f4f4f8",
                                            labelFontSize=12, labelFontWeight=600)),
                     tooltip=[
-                        alt.Tooltip("Ejercicio:N"),
-                        alt.Tooltip("Volumen:Q", format=",.0f", title="Volumen (kg)"),
+                        alt.Tooltip("Ejercicio:N", title=t("tooltip_ejercicio")),
+                        alt.Tooltip("Volumen:Q", format=",.0f", title=t("tooltip_volumen_kg")),
                     ],
                 )
                 .properties(height=max(120, 34 * len(top_ejercicios)), background="transparent")
@@ -602,6 +686,6 @@ if not df_entrenos_30.empty:
             st.altair_chart(chart_top, use_container_width=True)
 
 st.markdown(
-    '<div class="caption-suave">Datos actualizados en tiempo real desde el bot de Telegram ✨</div>',
+    f'<div class="caption-suave">{t("pie_tiempo_real")}</div>',
     unsafe_allow_html=True,
 )
