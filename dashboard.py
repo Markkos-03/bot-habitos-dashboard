@@ -23,6 +23,7 @@ la que pones en DASHBOARD_URL en flask_app.py.
 import json
 import os
 from datetime import date, timedelta
+from urllib.parse import urlencode
 
 import altair as alt
 import pandas as pd
@@ -696,6 +697,20 @@ st.markdown(
 )
 
 # ---------- Enlaces legales, en un desplegable al final de la página ----------
+# Los pasamos con tu ?token=...&lang=... en la propia URL para que, al
+# volver del dashboard con el enlace de "Volver" de esas páginas, no se
+# pierda tu sesión (si no, el dashboard no sabría quién eres).
+_qs_legal = urlencode({"token": st.query_params.get("token", ""), "lang": IDIOMA})
 with st.expander("📄 Privacidad y Términos" if IDIOMA == "es" else "📄 Privacy & Terms"):
-    st.page_link("pages/Privacidad.py", label="Política de Privacidad" if IDIOMA == "es" else "Privacy Policy", icon="🔒")
-    st.page_link("pages/Terminos.py", label="Términos de Uso" if IDIOMA == "es" else "Terms of Use", icon="📄")
+    st.markdown(
+        f'<a href="/Privacidad?{_qs_legal}" target="_self">🔒 '
+        + ("Política de Privacidad" if IDIOMA == "es" else "Privacy Policy")
+        + '</a>',
+        unsafe_allow_html=True,
+    )
+    st.markdown(
+        f'<a href="/Terminos?{_qs_legal}" target="_self">📄 '
+        + ("Términos de Uso" if IDIOMA == "es" else "Terms of Use")
+        + '</a>',
+        unsafe_allow_html=True,
+    )
