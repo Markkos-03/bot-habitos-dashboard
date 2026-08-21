@@ -27,7 +27,7 @@ de db.py ni de Supabase) — es solo una página de texto.
 
 import streamlit as st
 
-st.set_page_config(page_title="Términos de Uso", page_icon="📄", layout="centered")
+st.set_page_config(page_title="Términos de Uso", page_icon="📄", layout="centered", initial_sidebar_state="expanded")
 
 # -------------------------------------------------------------
 # PEGA AQUÍ el texto/HTML que te genere TermsFeed, reemplazando todo
@@ -151,6 +151,9 @@ CSS = """
     }
 
     /* ---------- Menú lateral (páginas: dashboard / Privacidad / Terminos) ---------- */
+    [data-testid="stHeader"] {
+        background: transparent !important;
+    }
     [data-testid="stSidebar"] {
         background: #12122a;
         border-right: 1px solid rgba(255,255,255,0.08);
@@ -174,19 +177,13 @@ CSS = """
         background: linear-gradient(135deg, rgba(124,58,237,0.35), rgba(52,211,153,0.20));
         color: #ffffff !important;
     }
+    /* Menú siempre visible (ver initial_sidebar_state="expanded" arriba):
+       quitamos el botón de colapsar, que era poco fiable. */
     [data-testid="stSidebarCollapsedControl"],
     [data-testid="collapsedControl"],
     [data-testid="stSidebarCollapseButton"],
     [data-testid="baseButton-headerNoPadding"] {
-        opacity: 1 !important;
-        visibility: visible !important;
-    }
-    [data-testid="stSidebarCollapsedControl"] svg,
-    [data-testid="collapsedControl"] svg,
-    [data-testid="stSidebarCollapseButton"] svg {
-        color: #e5e5f0 !important;
-        fill: #e5e5f0 !important;
-        opacity: 1 !important;
+        display: none !important;
     }
 </style>
 """
