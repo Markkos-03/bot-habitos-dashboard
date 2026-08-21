@@ -332,42 +332,17 @@ html, body, [class*="css"], .stMarkdown, p, span, div {
 [data-testid="baseButton-headerNoPadding"] {
     display: none !important;
 }
-/* Botón ☰ propio (arriba a la izquierda, fijo) que abre/cierra el menú */
-.st-key-toggle_menu_btn {
-    position: fixed;
-    top: 0.7rem;
-    left: 0.7rem;
-    z-index: 999999;
-    width: 2.3rem;
-}
-.st-key-toggle_menu_btn button {
-    width: 2.3rem !important;
-    height: 2.3rem !important;
-    min-height: 2.3rem !important;
-    padding: 0 !important;
-    border-radius: 8px !important;
-    background: rgba(167,139,250,0.22) !important;
-    border: 1px solid rgba(255,255,255,0.15) !important;
-    color: #e5e5f0 !important;
-    font-size: 1.1rem !important;
-}
-.st-key-toggle_menu_btn button:hover {
-    background: rgba(167,139,250,0.38) !important;
-    border-color: rgba(255,255,255,0.25) !important;
-    color: #ffffff !important;
-}
 </style>
 """
 st.markdown(CUSTOM_CSS, unsafe_allow_html=True)
 
-# Botón propio arriba a la izquierda para abrir/cerrar el menú lateral.
-# Nada de JavaScript ni iframes esta vez (eso es lo que fallaba, seguramente
-# porque el iframe de st.iframe está aislado por seguridad y no puede tocar
-# la página principal). Un botón de Streamlit de verdad, con su propio
-# estado — 100% fiable porque es el propio framework quien lo gestiona.
+# Botón para abrir/cerrar el menú lateral. Sin CSS raro, sin JavaScript,
+# sin posicionamiento fijo — un botón de Streamlit normal y corriente,
+# arriba del todo de la página. Es lo más básico que existe en Streamlit,
+# así que si esto no funciona el problema no está en el botón.
 if "sidebar_open" not in st.session_state:
     st.session_state.sidebar_open = True
-if st.button("☰", key="toggle_menu_btn"):
+if st.button("☰ Abrir/cerrar menú (Privacidad, Términos...)", key="toggle_menu_btn"):
     st.session_state.sidebar_open = not st.session_state.sidebar_open
 if not st.session_state.sidebar_open:
     st.markdown(
