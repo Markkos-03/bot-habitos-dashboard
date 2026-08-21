@@ -229,6 +229,6 @@ st.iframe("""
     doc.body.appendChild(btn);
 })();
 </script>
-""", height=0, width=0)
+""", height=0)
 
 st.markdown(f'<div class="legal-box">{TEXTO_TERMINOS}</div>', unsafe_allow_html=True)
