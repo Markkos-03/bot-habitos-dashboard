@@ -27,7 +27,7 @@ de db.py ni de Supabase) — es solo una página de texto.
 
 import streamlit as st
 
-st.set_page_config(page_title="Términos de Uso", page_icon="📄", layout="centered", initial_sidebar_state="expanded")
+st.set_page_config(page_title="Términos de Uso", page_icon="📄", layout="centered")
 
 # -------------------------------------------------------------
 # PEGA AQUÍ el texto/HTML que te genere TermsFeed, reemplazando todo
@@ -150,57 +150,16 @@ CSS = """
         border-radius: 4px;
     }
 
-    /* ---------- Menú lateral (páginas: dashboard / Privacidad / Terminos) ---------- */
     [data-testid="stHeader"] {
         background: transparent !important;
-    }
-    [data-testid="stSidebar"] {
-        background: #12122a;
-        border-right: 1px solid rgba(255,255,255,0.08);
-    }
-    [data-testid="stSidebarNav"] {
-        padding-top: 1.2rem;
-    }
-    [data-testid="stSidebarNav"] a {
-        color: #cfcfe6 !important;
-        border-radius: 10px;
-        padding: 0.55rem 0.9rem !important;
-        margin: 0.15rem 0.7rem;
-        font-weight: 500;
-        transition: background 0.15s ease, color 0.15s ease;
-    }
-    [data-testid="stSidebarNav"] a:hover {
-        background: rgba(167,139,250,0.18);
-        color: #ffffff !important;
-    }
-    [data-testid="stSidebarNav"] a[aria-current="page"] {
-        background: linear-gradient(135deg, rgba(124,58,237,0.35), rgba(52,211,153,0.20));
-        color: #ffffff !important;
-    }
-    /* Menú siempre visible (ver initial_sidebar_state="expanded" arriba):
-       quitamos el botón de colapsar, que era poco fiable. */
-    [data-testid="stSidebarCollapsedControl"],
-    [data-testid="collapsedControl"],
-    [data-testid="stSidebarCollapseButton"],
-    [data-testid="baseButton-headerNoPadding"] {
-        display: none !important;
     }
 </style>
 """
 
 st.markdown(CSS, unsafe_allow_html=True)
 
-# Botón para abrir/cerrar el menú lateral. Sin CSS raro, sin JavaScript,
-# sin posicionamiento fijo — un botón de Streamlit normal y corriente,
-# arriba del todo de la página.
-if "sidebar_open" not in st.session_state:
-    st.session_state.sidebar_open = True
-if st.button("☰ Abrir/cerrar menú (dashboard, Privacidad...)", key="toggle_menu_btn"):
-    st.session_state.sidebar_open = not st.session_state.sidebar_open
-if not st.session_state.sidebar_open:
-    st.markdown(
-        '<style>[data-testid="stSidebar"] { display: none !important; }</style>',
-        unsafe_allow_html=True,
-    )
-
 st.markdown(f'<div class="legal-box">{TEXTO_TERMINOS}</div>', unsafe_allow_html=True)
+
+with st.expander("← Volver / otros enlaces"):
+    st.page_link("dashboard.py", label="Dashboard", icon="✨")
+    st.page_link("pages/Privacidad.py", label="Política de Privacidad", icon="🔒")
