@@ -248,52 +248,48 @@ CSS = """
     [data-testid="baseButton-headerNoPadding"] {
         display: none !important;
     }
-    /* El iframe de 1px que crea el botón del menú, invisible */
-    iframe { background: transparent !important; border: none !important; }
+    /* Botón ☰ propio (arriba a la izquierda, fijo) que abre/cierra el menú */
+    .st-key-toggle_menu_btn {
+        position: fixed;
+        top: 0.7rem;
+        left: 0.7rem;
+        z-index: 999999;
+        width: 2.3rem;
+    }
+    .st-key-toggle_menu_btn button {
+        width: 2.3rem !important;
+        height: 2.3rem !important;
+        min-height: 2.3rem !important;
+        padding: 0 !important;
+        border-radius: 8px !important;
+        background: rgba(167,139,250,0.22) !important;
+        border: 1px solid rgba(255,255,255,0.15) !important;
+        color: #e5e5f0 !important;
+        font-size: 1.1rem !important;
+    }
+    .st-key-toggle_menu_btn button:hover {
+        background: rgba(167,139,250,0.38) !important;
+        border-color: rgba(255,255,255,0.25) !important;
+        color: #ffffff !important;
+    }
 </style>
 """
 
 st.markdown(CSS, unsafe_allow_html=True)
 
 # Botón propio arriba a la izquierda para abrir/cerrar el menú lateral.
-# Un <button onclick="..."> puesto con st.markdown no funciona de forma
-# fiable (el navegador puede bloquear el atributo onclick puesto así por
-# seguridad). En su lugar usamos st.iframe: crea un mini-iframe que
-# sí ejecuta JavaScript de verdad, y desde ahí manipulamos la página
-# principal a través de window.parent.document — es el truco estándar
-# para este tipo de personalización en Streamlit.
-st.iframe("""
-<script>
-(function() {
-    var doc = window.parent.document;
-    if (doc.getElementById('toggle-menu-btn')) { return; }
-    var btn = doc.createElement('button');
-    btn.id = 'toggle-menu-btn';
-    btn.innerHTML = '☰';
-    btn.style.position = 'fixed';
-    btn.style.top = '0.7rem';
-    btn.style.left = '0.7rem';
-    btn.style.zIndex = '999999';
-    btn.style.width = '2.3rem';
-    btn.style.height = '2.3rem';
-    btn.style.borderRadius = '8px';
-    btn.style.background = 'rgba(167,139,250,0.22)';
-    btn.style.border = '1px solid rgba(255,255,255,0.15)';
-    btn.style.color = '#e5e5f0';
-    btn.style.fontSize = '1.1rem';
-    btn.style.cursor = 'pointer';
-    btn.style.display = 'flex';
-    btn.style.alignItems = 'center';
-    btn.style.justifyContent = 'center';
-    btn.onmouseenter = function() { btn.style.background = 'rgba(167,139,250,0.38)'; };
-    btn.onmouseleave = function() { btn.style.background = 'rgba(167,139,250,0.22)'; };
-    btn.onclick = function() {
-        var sb = doc.querySelector('[data-testid="stSidebar"]');
-        if (sb) { sb.style.display = (sb.style.display === 'none') ? '' : 'none'; }
-    };
-    doc.body.appendChild(btn);
-})();
-</script>
-""", height=1)
+# Nada de JavaScript ni iframes esta vez (eso es lo que fallaba, seguramente
+# porque el iframe de st.iframe está aislado por seguridad y no puede tocar
+# la página principal). Un botón de Streamlit de verdad, con su propio
+# estado — 100% fiable porque es el propio framework quien lo gestiona.
+if "sidebar_open" not in st.session_state:
+    st.session_state.sidebar_open = True
+if st.button("☰", key="toggle_menu_btn"):
+    st.session_state.sidebar_open = not st.session_state.sidebar_open
+if not st.session_state.sidebar_open:
+    st.markdown(
+        '<style>[data-testid="stSidebar"] { display: none !important; }</style>',
+        unsafe_allow_html=True,
+    )
 
 st.markdown(f'<div class="legal-box">{TEXTO_POLITICA}</div>', unsafe_allow_html=True)
