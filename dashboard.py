@@ -375,7 +375,7 @@ st.iframe("""
     doc.body.appendChild(btn);
 })();
 </script>
-""", height=0, width=0)
+""", height=0)
 
 
 def pantalla_vacia(titulo, mensaje):
