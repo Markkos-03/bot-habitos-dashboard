@@ -337,36 +337,46 @@ html, body, [class*="css"], .stMarkdown, p, span, div {
 """
 st.markdown(CUSTOM_CSS, unsafe_allow_html=True)
 
-# Botón propio arriba a la izquierda para abrir/cerrar el menú lateral
-# (el botón nativo de Streamlit era poco fiable, así que hacemos el nuestro).
-st.markdown("""
-<style>
-#toggle-menu {
-    position: fixed;
-    top: 0.7rem;
-    left: 0.7rem;
-    z-index: 999999;
-    width: 2.3rem;
-    height: 2.3rem;
-    border-radius: 8px;
-    background: rgba(167,139,250,0.22);
-    border: 1px solid rgba(255,255,255,0.15);
-    color: #e5e5f0;
-    font-size: 1.1rem;
-    line-height: 1;
-    cursor: pointer;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    -webkit-tap-highlight-color: transparent;
-}
-#toggle-menu:hover { background: rgba(167,139,250,0.38); }
-</style>
-<button id="toggle-menu" onclick="
-    var sb = document.querySelector('[data-testid=\\'stSidebar\\']');
-    if (sb) { sb.style.display = (sb.style.display === 'none') ? '' : 'none'; }
-">☰</button>
-""", unsafe_allow_html=True)
+# Botón propio arriba a la izquierda para abrir/cerrar el menú lateral.
+# Un <button onclick="..."> puesto con st.markdown no funciona de forma
+# fiable (el navegador puede bloquear el atributo onclick puesto así por
+# seguridad). En su lugar usamos components.html: crea un mini-iframe que
+# sí ejecuta JavaScript de verdad, y desde ahí manipulamos la página
+# principal a través de window.parent.document — es el truco estándar
+# para este tipo de personalización en Streamlit.
+components.html("""
+<script>
+(function() {
+    var doc = window.parent.document;
+    if (doc.getElementById('toggle-menu-btn')) { return; }
+    var btn = doc.createElement('button');
+    btn.id = 'toggle-menu-btn';
+    btn.innerHTML = '☰';
+    btn.style.position = 'fixed';
+    btn.style.top = '0.7rem';
+    btn.style.left = '0.7rem';
+    btn.style.zIndex = '999999';
+    btn.style.width = '2.3rem';
+    btn.style.height = '2.3rem';
+    btn.style.borderRadius = '8px';
+    btn.style.background = 'rgba(167,139,250,0.22)';
+    btn.style.border = '1px solid rgba(255,255,255,0.15)';
+    btn.style.color = '#e5e5f0';
+    btn.style.fontSize = '1.1rem';
+    btn.style.cursor = 'pointer';
+    btn.style.display = 'flex';
+    btn.style.alignItems = 'center';
+    btn.style.justifyContent = 'center';
+    btn.onmouseenter = function() { btn.style.background = 'rgba(167,139,250,0.38)'; };
+    btn.onmouseleave = function() { btn.style.background = 'rgba(167,139,250,0.22)'; };
+    btn.onclick = function() {
+        var sb = doc.querySelector('[data-testid="stSidebar"]');
+        if (sb) { sb.style.display = (sb.style.display === 'none') ? '' : 'none'; }
+    };
+    doc.body.appendChild(btn);
+})();
+</script>
+""", height=0, width=0)
 
 
 def pantalla_vacia(titulo, mensaje):
