@@ -161,7 +161,7 @@ html, body, [class*="css"], .stMarkdown, p, span, div {
     color: #f4f4f8;
 }
 
-#MainMenu, footer, header { visibility: hidden; }
+#MainMenu, footer, [data-testid="stToolbar"] { visibility: hidden; }
 .block-container { padding-top: 2.2rem; padding-bottom: 4rem; max-width: 880px; }
 
 .hero {
