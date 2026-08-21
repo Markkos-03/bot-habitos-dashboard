@@ -185,6 +185,8 @@ CSS = """
     [data-testid="baseButton-headerNoPadding"] {
         display: none !important;
     }
+    /* El iframe de 1px que crea el botón del menú, invisible */
+    iframe { background: transparent !important; border: none !important; }
 </style>
 """
 
@@ -229,6 +231,6 @@ st.iframe("""
     doc.body.appendChild(btn);
 })();
 </script>
-""", height=0)
+""", height=1)
 
 st.markdown(f'<div class="legal-box">{TEXTO_TERMINOS}</div>', unsafe_allow_html=True)
