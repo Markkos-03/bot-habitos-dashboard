@@ -28,6 +28,8 @@ de db.py ni de Supabase) — es solo una página de texto, no necesita
 conectarse a ninguna base de datos.
 """
 
+from urllib.parse import urlencode
+
 import streamlit as st
 
 st.set_page_config(page_title="Política de Privacidad", page_icon="🔒", layout="centered")
@@ -223,6 +225,9 @@ st.markdown(CSS, unsafe_allow_html=True)
 
 st.markdown(f'<div class="legal-box">{TEXTO_POLITICA}</div>', unsafe_allow_html=True)
 
+# Conservamos tu ?token=...&lang=... al enlazar de vuelta, para que el
+# dashboard no pierda tu sesión personal.
+_qs = urlencode({"token": st.query_params.get("token", ""), "lang": st.query_params.get("lang", "es")})
 with st.expander("← Volver / otros enlaces"):
-    st.page_link("dashboard.py", label="Dashboard", icon="✨")
-    st.page_link("pages/Terminos.py", label="Términos de Uso", icon="📄")
+    st.markdown(f'<a href="/?{_qs}" target="_self">✨ Dashboard</a>', unsafe_allow_html=True)
+    st.markdown(f'<a href="/Terminos?{_qs}" target="_self">📄 Términos de Uso</a>', unsafe_allow_html=True)
