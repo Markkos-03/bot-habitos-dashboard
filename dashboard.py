@@ -27,7 +27,6 @@ from datetime import date, timedelta
 import altair as alt
 import pandas as pd
 import streamlit as st
-import streamlit.components.v1 as components
 
 # En Streamlit Community Cloud las credenciales se configuran como
 # "Secrets" (st.secrets), no como variables de entorno normales, así
@@ -340,11 +339,11 @@ st.markdown(CUSTOM_CSS, unsafe_allow_html=True)
 # Botón propio arriba a la izquierda para abrir/cerrar el menú lateral.
 # Un <button onclick="..."> puesto con st.markdown no funciona de forma
 # fiable (el navegador puede bloquear el atributo onclick puesto así por
-# seguridad). En su lugar usamos components.html: crea un mini-iframe que
+# seguridad). En su lugar usamos st.iframe: crea un mini-iframe que
 # sí ejecuta JavaScript de verdad, y desde ahí manipulamos la página
 # principal a través de window.parent.document — es el truco estándar
 # para este tipo de personalización en Streamlit.
-components.html("""
+st.iframe("""
 <script>
 (function() {
     var doc = window.parent.document;
@@ -468,7 +467,7 @@ if citas:
         setInterval(mostrar, 20000);
     </script>
     """
-    components.html(carousel_html, height=130)
+    st.iframe(carousel_html, height=130)
 
 # ---------- Métricas rápidas ----------
 rachas = {h["nombre"]: db.calcular_racha(usuario["id"], h["id"]) for h in habitos}
@@ -536,7 +535,7 @@ chart_barras = (
     .configure_view(strokeWidth=0)
     .configure_axis(domain=False)
 )
-st.altair_chart(chart_barras, use_container_width=True)
+st.altair_chart(chart_barras, width='stretch')
 
 # ---------- Constancia: una fila por hábito, una columna por día
 # desde tu primer registro (no un año fijo) ----------
@@ -605,7 +604,7 @@ else:
         .properties(height=max(140, 42 * len(habitos)), background="transparent")
         .configure_view(strokeWidth=0)
     )
-    st.altair_chart(grid_chart, use_container_width=True)
+    st.altair_chart(grid_chart, width='stretch')
 
 # ---------- Metas del año ----------
 metas = db.listar_metas(usuario["id"])
@@ -732,7 +731,7 @@ if not df_entrenos_30.empty:
             .properties(height=270, background="transparent")
             .configure_view(strokeWidth=0)
         )
-        st.altair_chart(donut, use_container_width=True)
+        st.altair_chart(donut, width='stretch')
 
         top_ejercicios = (
             df_series_validas.groupby("ejercicio")["volumen_serie"]
@@ -765,7 +764,7 @@ if not df_entrenos_30.empty:
                 .configure_view(strokeWidth=0)
                 .configure_axis(domain=False)
             )
-            st.altair_chart(chart_top, use_container_width=True)
+            st.altair_chart(chart_top, width='stretch')
 
 st.markdown(
     f'<div class="caption-suave">{t("pie_tiempo_real")}</div>',
