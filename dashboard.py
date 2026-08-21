@@ -332,6 +332,8 @@ html, body, [class*="css"], .stMarkdown, p, span, div {
 [data-testid="baseButton-headerNoPadding"] {
     display: none !important;
 }
+/* El iframe de 1px que crea el botón del menú, invisible */
+iframe { background: transparent !important; border: none !important; }
 </style>
 """
 st.markdown(CUSTOM_CSS, unsafe_allow_html=True)
@@ -375,7 +377,7 @@ st.iframe("""
     doc.body.appendChild(btn);
 })();
 </script>
-""", height=0)
+""", height=1)
 
 
 def pantalla_vacia(titulo, mensaje):
