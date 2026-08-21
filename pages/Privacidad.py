@@ -29,7 +29,6 @@ conectarse a ninguna base de datos.
 """
 
 import streamlit as st
-import streamlit.components.v1 as components
 
 st.set_page_config(page_title="Política de Privacidad", page_icon="🔒", layout="centered", initial_sidebar_state="expanded")
 
@@ -257,11 +256,11 @@ st.markdown(CSS, unsafe_allow_html=True)
 # Botón propio arriba a la izquierda para abrir/cerrar el menú lateral.
 # Un <button onclick="..."> puesto con st.markdown no funciona de forma
 # fiable (el navegador puede bloquear el atributo onclick puesto así por
-# seguridad). En su lugar usamos components.html: crea un mini-iframe que
+# seguridad). En su lugar usamos st.iframe: crea un mini-iframe que
 # sí ejecuta JavaScript de verdad, y desde ahí manipulamos la página
 # principal a través de window.parent.document — es el truco estándar
 # para este tipo de personalización en Streamlit.
-components.html("""
+st.iframe("""
 <script>
 (function() {
     var doc = window.parent.document;
