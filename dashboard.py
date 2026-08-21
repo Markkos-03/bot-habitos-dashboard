@@ -292,6 +292,48 @@ html, body, [class*="css"], .stMarkdown, p, span, div {
     .hero h1 { font-size: 1.7rem; }
     .hero { padding: 1.6rem 1.4rem; }
 }
+
+/* ---------- Menú lateral (páginas: dashboard / Privacidad / Terminos) ---------- */
+[data-testid="stSidebar"] {
+    background: #12122a;
+    border-right: 1px solid rgba(255,255,255,0.08);
+}
+[data-testid="stSidebarNav"] {
+    padding-top: 1.2rem;
+}
+[data-testid="stSidebarNav"] a {
+    color: #cfcfe6 !important;
+    border-radius: 10px;
+    padding: 0.55rem 0.9rem !important;
+    margin: 0.15rem 0.7rem;
+    font-weight: 500;
+    transition: background 0.15s ease, color 0.15s ease;
+}
+[data-testid="stSidebarNav"] a:hover {
+    background: rgba(167,139,250,0.18);
+    color: #ffffff !important;
+}
+[data-testid="stSidebarNav"] a[aria-current="page"] {
+    background: linear-gradient(135deg, rgba(124,58,237,0.35), rgba(52,211,153,0.20));
+    color: #ffffff !important;
+}
+/* El botón de abrir/cerrar el menú por defecto solo aparece bien
+   visible al pasar el cursor por encima — lo forzamos a estar
+   siempre visible y con buen contraste sobre el fondo oscuro. */
+[data-testid="stSidebarCollapsedControl"],
+[data-testid="collapsedControl"],
+[data-testid="stSidebarCollapseButton"],
+[data-testid="baseButton-headerNoPadding"] {
+    opacity: 1 !important;
+    visibility: visible !important;
+}
+[data-testid="stSidebarCollapsedControl"] svg,
+[data-testid="collapsedControl"] svg,
+[data-testid="stSidebarCollapseButton"] svg {
+    color: #e5e5f0 !important;
+    fill: #e5e5f0 !important;
+    opacity: 1 !important;
+}
 </style>
 """
 st.markdown(CUSTOM_CSS, unsafe_allow_html=True)
