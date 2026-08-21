@@ -25,6 +25,8 @@ Este archivo es independiente del resto del dashboard (no importa nada
 de db.py ni de Supabase) — es solo una página de texto.
 """
 
+from urllib.parse import urlencode
+
 import streamlit as st
 
 st.set_page_config(page_title="Términos de Uso", page_icon="📄", layout="centered")
@@ -160,6 +162,9 @@ st.markdown(CSS, unsafe_allow_html=True)
 
 st.markdown(f'<div class="legal-box">{TEXTO_TERMINOS}</div>', unsafe_allow_html=True)
 
+# Conservamos tu ?token=...&lang=... al enlazar de vuelta, para que el
+# dashboard no pierda tu sesión personal.
+_qs = urlencode({"token": st.query_params.get("token", ""), "lang": st.query_params.get("lang", "es")})
 with st.expander("← Volver / otros enlaces"):
-    st.page_link("dashboard.py", label="Dashboard", icon="✨")
-    st.page_link("pages/Privacidad.py", label="Política de Privacidad", icon="🔒")
+    st.markdown(f'<a href="/?{_qs}" target="_self">✨ Dashboard</a>', unsafe_allow_html=True)
+    st.markdown(f'<a href="/Privacidad?{_qs}" target="_self">🔒 Política de Privacidad</a>', unsafe_allow_html=True)
