@@ -136,7 +136,7 @@ def t(clave, **kwargs):
     return plantilla.format(**kwargs) if kwargs else plantilla
 
 
-st.set_page_config(page_title=t("titulo_pagina"), page_icon="✨", layout="centered")
+st.set_page_config(page_title=t("titulo_pagina"), page_icon="✨", layout="centered", initial_sidebar_state="expanded")
 
 # ------------------------------------------------------------------
 # Estilo — paleta pensada para transmitir logro y calma a la vez:
@@ -294,6 +294,11 @@ html, body, [class*="css"], .stMarkdown, p, span, div {
 }
 
 /* ---------- Menú lateral (páginas: dashboard / Privacidad / Terminos) ---------- */
+/* Barra superior de Streamlit: la dejamos transparente para que no
+   se vea como una franja negra pegada arriba. */
+[data-testid="stHeader"] {
+    background: transparent !important;
+}
 [data-testid="stSidebar"] {
     background: #12122a;
     border-right: 1px solid rgba(255,255,255,0.08);
@@ -317,22 +322,16 @@ html, body, [class*="css"], .stMarkdown, p, span, div {
     background: linear-gradient(135deg, rgba(124,58,237,0.35), rgba(52,211,153,0.20));
     color: #ffffff !important;
 }
-/* El botón de abrir/cerrar el menú por defecto solo aparece bien
-   visible al pasar el cursor por encima — lo forzamos a estar
-   siempre visible y con buen contraste sobre el fondo oscuro. */
+/* El botón para colapsar/expandir el menú era poco fiable (solo se
+   veía bien al pasar el cursor por encima). En vez de arreglar ese
+   botón, quitamos la posibilidad de cerrar el menú: se queda
+   siempre visible (ver initial_sidebar_state="expanded" más abajo),
+   así que el botón ya no hace falta y lo ocultamos del todo. */
 [data-testid="stSidebarCollapsedControl"],
 [data-testid="collapsedControl"],
 [data-testid="stSidebarCollapseButton"],
 [data-testid="baseButton-headerNoPadding"] {
-    opacity: 1 !important;
-    visibility: visible !important;
-}
-[data-testid="stSidebarCollapsedControl"] svg,
-[data-testid="collapsedControl"] svg,
-[data-testid="stSidebarCollapseButton"] svg {
-    color: #e5e5f0 !important;
-    fill: #e5e5f0 !important;
-    opacity: 1 !important;
+    display: none !important;
 }
 </style>
 """
